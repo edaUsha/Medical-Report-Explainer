@@ -1,0 +1,13 @@
+langchain==0.2.16
+langchain-openai==0.1.23
+langchain-pinecone==0.1.3
+langchain-community
+langchain-huggingface==0.0.3
+sentence-transformers==3.0.1
+pypdf==4.3.1
+pinecone-client
+python-dotenv==1.0.1
+
+fastapi==0.111.0
+uvicorn==0.30.1
+python-multipart==0.0.9

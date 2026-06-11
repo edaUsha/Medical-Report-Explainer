@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Medical Report Q&A</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      color: #1a2e3b;
+      min-height: 100vh;
+    }
+
+    /* ── header ── */
+    header {
+      background: linear-gradient(135deg, #0a6e6e, #1a8fa0);
+      color: white;
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    header h1 { font-size: 22px; font-weight: 600; }
+    header p  { font-size: 13px; opacity: 0.85; margin-top: 2px; }
+    .logo { font-size: 32px; }
+
+    /* ── main layout ── */
+    main {
+      max-width: 820px;
+      margin: 36px auto;
+      padding: 0 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* ── cards ── */
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 28px 32px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    }
+    .card h2 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #0a6e6e;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── upload area ── */
+    .upload-area {
+      border: 2px dashed #a8d5d5;
+      border-radius: 10px;
+      padding: 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #f7fbfb;
+    }
+    .upload-area:hover { border-color: #0a6e6e; background: #eef7f7; }
+    .upload-area.dragover { border-color: #0a6e6e; background: #e0f2f2; }
+    .upload-icon { font-size: 40px; margin-bottom: 10px; }
+    .upload-area p { color: #5a7a8a; font-size: 14px; }
+    .upload-area strong { color: #0a6e6e; }
+    #file-input { display: none; }
+
+    /* ── status badge ── */
+    #status {
+      margin-top: 14px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      display: none;
+    }
+    #status.loading { background: #e8f4fd; color: #1565c0; display: block; }
+    #status.success { background: #e8f5e9; color: #2e7d32; display: block; }
+    #status.error   { background: #fdecea; color: #c62828; display: block; }
+
+    /* ── chat history ── */
+    #chat-history {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-height: 420px;
+      overflow-y: auto;
+      margin-bottom: 20px;
+      padding-right: 4px;
+    }
+    #chat-history:empty::before {
+      content: "Ask a question about your medical report below.";
+      color: #9ab0bb;
+      font-size: 14px;
+      text-align: center;
+      padding: 24px 0;
+      display: block;
+    }
+
+    /* ── message bubbles ── */
+    .msg { display: flex; flex-direction: column; gap: 4px; }
+    .msg.user { align-items: flex-end; }
+    .msg.bot  { align-items: flex-start; }
+
+    .bubble {
+      max-width: 80%;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .msg.user .bubble {
+      background: linear-gradient(135deg, #0a6e6e, #1a8fa0);
+      color: white;
+      border-bottom-right-radius: 3px;
+    }
+    .msg.bot .bubble {
+      background: #f0f7f7;
+      color: #1a2e3b;
+      border: 1px solid #d0e8e8;
+      border-bottom-left-radius: 3px;
+    }
+    .msg .label {
+      font-size: 11px;
+      color: #9ab0bb;
+      padding: 0 4px;
+    }
+
+    /* ── thinking indicator ── */
+    .thinking .bubble {
+      background: #f0f7f7;
+      border: 1px solid #d0e8e8;
+      color: #5a7a8a;
+      font-style: italic;
+    }
+
+    /* ── input row ── */
+    .input-row {
+      display: flex;
+      gap: 10px;
+    }
+    #question-input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1.5px solid #c5dede;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      transition: border 0.2s;
+      font-family: inherit;
+    }
+    #question-input:focus { border-color: #0a6e6e; }
+    #question-input:disabled { background: #f5f5f5; cursor: not-allowed; }
+
+    #ask-btn {
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #0a6e6e, #1a8fa0);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      white-space: nowrap;
+    }
+    #ask-btn:hover:not(:disabled) { opacity: 0.88; }
+    #ask-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── disclaimer ── */
+    .disclaimer {
+      font-size: 12px;
+      color: #9ab0bb;
+      text-align: center;
+      padding-top: 8px;
+      border-top: 1px solid #e8f0f0;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🏥</div>
+  <div>
+    <h1>Medical Report Q&A</h1>
+    <p>Upload your report and ask questions in plain English</p>
+  </div>
+</header>
+
+<main>
+
+  <!-- Upload card -->
+  <div class="card">
+    <h2>📄 Upload Medical Report</h2>
+    <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
+      <div class="upload-icon">📂</div>
+      <p><strong>Click to upload</strong> or drag and drop</p>
+      <p style="margin-top:6px;font-size:12px;">PDF files only</p>
+    </div>
+    <input type="file" id="file-input" accept=".pdf" />
+    <div id="status"></div>
+  </div>
+
+  <!-- Chat card -->
+  <div class="card">
+    <h2>💬 Ask a Question</h2>
+    <div id="chat-history"></div>
+    <div class="input-row">
+      <input
+        type="text"
+        id="question-input"
+        placeholder="e.g. What does my hemoglobin level mean?"
+        disabled
+      />
+      <button id="ask-btn" disabled>Ask</button>
+    </div>
+    <p class="disclaimer">⚠️ For informational purposes only. Always consult your doctor.</p>
+  </div>
+
+</main>
+
+<script>
+  const uploadArea    = document.getElementById('upload-area');
+  const fileInput     = document.getElementById('file-input');
+  const statusEl      = document.getElementById('status');
+  const chatHistory   = document.getElementById('chat-history');
+  const questionInput = document.getElementById('question-input');
+  const askBtn        = document.getElementById('ask-btn');
+
+  // ── drag and drop ──────────────────────────────────────
+  uploadArea.addEventListener('dragover', e => {
+    e.preventDefault();
+    uploadArea.classList.add('dragover');
+  });
+  uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+  uploadArea.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) uploadPDF(file);
+  });
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) uploadPDF(fileInput.files[0]);
+  });
+
+  // ── upload PDF ─────────────────────────────────────────
+  async function uploadPDF(file) {
+    if (!file.name.endsWith('.pdf')) {
+      showStatus('error', '❌ Please upload a PDF file only.');
+      return;
+    }
+
+    showStatus('loading', `⏳ Indexing "${file.name}" — this may take a minute...`);
+    uploadArea.style.pointerEvents = 'none';
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res  = await fetch('/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      if (res.ok) {
+        showStatus('success', `✅ ${data.message}`);
+        uploadArea.innerHTML = `<div class="upload-icon">✅</div><p><strong>${file.name}</strong> indexed and ready</p>`;
+        enableChat();
+      } else {
+        showStatus('error', `❌ ${data.detail}`);
+        uploadArea.style.pointerEvents = 'auto';
+      }
+    } catch (err) {
+      showStatus('error', '❌ Server error. Is the FastAPI server running?');
+      uploadArea.style.pointerEvents = 'auto';
+    }
+  }
+
+  // ── ask question ───────────────────────────────────────
+  askBtn.addEventListener('click', askQuestion);
+  questionInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) askQuestion();
+  });
+
+  async function askQuestion() {
+    const question = questionInput.value.trim();
+    if (!question) return;
+
+    addMessage('user', question);
+    questionInput.value = '';
+    setInputEnabled(false);
+
+    const thinkingEl = addMessage('bot', '...thinking...', true);
+
+    try {
+      const res  = await fetch('/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question })
+      });
+      const data = await res.json();
+
+      thinkingEl.remove();
+
+      if (res.ok) {
+        addMessage('bot', data.answer);
+      } else {
+        addMessage('bot', `❌ ${data.detail}`);
+      }
+    } catch (err) {
+      thinkingEl.remove();
+      addMessage('bot', '❌ Server error. Is the FastAPI server running?');
+    }
+
+    setInputEnabled(true);
+    questionInput.focus();
+  }
+
+  // ── helpers ────────────────────────────────────────────
+  function addMessage(role, text, isThinking = false) {
+    const msg = document.createElement('div');
+    msg.className = `msg ${role}${isThinking ? ' thinking' : ''}`;
+    msg.innerHTML = `
+      <span class="label">${role === 'user' ? 'You' : 'Assistant'}</span>
+      <div class="bubble">${text}</div>
+    `;
+    chatHistory.appendChild(msg);
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+    return msg;
+  }
+
+  function showStatus(type, msg) {
+    statusEl.className = type;
+    statusEl.textContent = msg;
+  }
+
+  function enableChat() {
+    questionInput.disabled = false;
+    askBtn.disabled = false;
+    questionInput.placeholder = "Ask a question about your report...";
+    questionInput.focus();
+  }
+
+  function setInputEnabled(enabled) {
+    questionInput.disabled = !enabled;
+    askBtn.disabled = !enabled;
+    askBtn.textContent = enabled ? 'Ask' : 'Thinking...';
+  }
+</script>
+
+</body>
+</html>
